@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<title>Bloom — irrigação inteligente para quem planta pequeno</title>
+<meta name="description" content="Bloom: irrigação inteligente, detecção de vazamento e visão computacional para a pequena lavoura.">
+
+<!-- PWA / App shell -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0F130B">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bloom">
+<meta name="format-detection" content="telephone=no">
+
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============ TOKENS ============ */
+:root{
+  --soil-950:#0F130B;
+  --soil-900:#161C0F;
+  --soil-800:#212A16;
+  --soil-700:#2C3820;
+  --leaf-600:#436B36;
+  --leaf-500:#5C8A3F;
+  --leaf-400:#84AC5C;
+  --leaf-300:#ABCE83;
+  --water-600:#2E7691;
+  --water-500:#3E93B5;
+  --water-300:#9AD1E5;
+  --clay-500:#BE7C41;
+  --clay-300:#E4B77D;
+  --paper-50:#FBF8EF;
+  --paper-100:#F3EEDD;
+  --paper-200:#E9E1C9;
+  --ink-900:#14180D;
+  --ink-600:#454B37;
+  --ink-400:#6C7458;
+  --font-display:"Fraunces", serif;
+  --font-body:"Space Grotesk", sans-serif;
+  --font-mono:"IBM Plex Mono", monospace;
+  --ease:cubic-bezier(.19,1,.22,1);
+}
+*,*::before,*::after{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto;}
+  *{animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important;}
+}
+body{
+  margin:0;
+  background:var(--paper-50);
+  color:var(--ink-900);
+  font-family:var(--font-body);
+  font-size:16px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+img,svg{display:block; max-width:100%;}
+a{color:inherit;}
+:focus-visible{outline:2.5px solid var(--water-500); outline-offset:3px; border-radius:2px;}
+.wrap{max-width:1180px; margin:0 auto; padding:0 32px;}
+@media (max-width:640px){ .wrap{padding:0 20px;} }
+
+.eyebrow{
+  font-family:var(--font-mono);
+  font-size:12.5px;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  display:flex; align-items:center; gap:10px;
+  margin:0 0 18px;
+}
+.eyebrow::before{content:""; width:22px; height:1.5px; background:currentColor; opacity:.6; display:inline-block;}
+
+h1,h2,h3{font-family:var(--font-display); font-weight:600; letter-spacing:-.01em; margin:0;}
+.section{padding:120px 0;}
+@media (max-width:780px){ .section{padding:76px 0;} }
+
+.reveal{opacity:0; transform:translateY(28px); transition:opacity .9s var(--ease), transform .9s var(--ease);}
+.reveal.in{opacity:1; transform:translateY(0);}
+
+/* ============ NAV ============ */
+.nav{
+  position:fixed; top:0; left:0; right:0; z-index:100;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:20px 32px;
+  transition:background .4s var(--ease), padding .4s var(--ease), box-shadow .4s var(--ease);
+}
+.nav.scrolled{
+  background:rgba(15,19,11,.86);
+  backdrop-filter:blur(10px);
+  padding:13px 32px;
+  box-shadow:0 1px 0 rgba(171,206,131,.12);
+}
+.nav-mark{
+  display:flex; align-items:center; gap:10px;
+  font-family:var(--font-display); font-weight:700; font-size:20px;
+  color:var(--paper-50); text-decoration:none; letter-spacing:.01em;
+}
+.nav-mark img{width:32px; height:32px; border-radius:50%; display:block; box-shadow:0 0 0 1.5px rgba(243,238,221,.25);}
+.nav-links{display:flex; gap:28px; list-style:none; margin:0; padding:0; align-items:center;}
+.nav-links a{
+  font-family:var(--font-mono); font-size:12.5px; text-transform:uppercase; letter-spacing:.08em;
+  text-decoration:none; color:var(--paper-100); opacity:.72;
+  padding-bottom:3px; border-bottom:1px solid transparent;
+  transition:opacity .25s, border-color .25s;
+}
+.nav-links a:hover{opacity:1; border-color:var(--leaf-300);}
+.nav-links .nav-cta{opacity:1; border:1px solid rgba(171,206,131,.5); border-radius:3px; padding:8px 14px; color:var(--leaf-300);}
+.nav-links .nav-cta:hover{background:var(--leaf-300); color:var(--soil-950); border-color:var(--leaf-300);}
+.nav-toggle{
+  display:none; background:none; border:none; cursor:pointer; padding:6px; width:38px; height:38px;
+  flex-direction:column; align-items:center; justify-content:center; gap:5px; z-index:110;
+}
+.nav-toggle span{width:22px; height:2px; background:var(--paper-50); border-radius:2px; transition:transform .3s var(--ease), opacity .3s var(--ease);}
+.nav-toggle[aria-expanded="true"] span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+.nav-toggle[aria-expanded="true"] span:nth-child(2){opacity:0;}
+.nav-toggle[aria-expanded="true"] span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+.mobile-menu{
+  position:fixed; inset:0; z-index:99; background:rgba(15,19,11,.98); backdrop-filter:blur(10px);
+  display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:6px;
+  padding:32px; opacity:0; visibility:hidden; transform:translateY(-8px);
+  transition:opacity .35s var(--ease), transform .35s var(--ease), visibility 0s linear .35s;
+}
+.mobile-menu.open{opacity:1; visibility:visible; transform:translateY(0); transition:opacity .35s var(--ease), transform .35s var(--ease);}
+.mobile-menu a{
+  font-family:var(--font-display); font-size:26px; font-weight:600; color:var(--paper-50);
+  text-decoration:none; padding:14px 0; border-bottom:1px solid rgba(243,238,221,.1); width:100%;
+}
+.mobile-menu a.nav-cta{color:var(--leaf-300);}
+@media (max-width:900px){
+  .nav-links{display:none;}
+  .nav-toggle{display:flex;}
+}
+@media (min-width:901px){
+  .mobile-menu{display:none;}
+}
+
+/* ============ HERO ============ */
+.hero{
+  position:relative; min-height:100vh;
+  background:radial-gradient(120% 90% at 20% 0%, #202B14 0%, var(--soil-900) 45%, var(--soil-950) 100%);
+  color:var(--paper-50);
+  display:flex; flex-direction:column; justify-content:center;
+  overflow:hidden;
+  padding-top:120px;
+}
+.hero canvas{position:absolute; inset:0; width:100%; height:100%;}
+.hero-inner{position:relative; z-index:2;}
+.hero .wrap{width:100%;}
+.hero-eyebrow{color:var(--leaf-300);}
+.hero h1{
+  font-size:clamp(38px, 6.4vw, 82px);
+  line-height:1.03;
+  max-width:16ch;
+  color:var(--paper-50);
+}
+.hero h1 em{font-style:italic; color:var(--leaf-300); font-weight:500;}
+.hero p.lede{
+  font-size:clamp(16px, 1.5vw, 19px);
+  max-width:640px;
+  color:var(--paper-200, #E9E1C9);
+  opacity:.86;
+  margin:26px 0 40px;
+}
+.btn-row{display:flex; gap:16px; flex-wrap:wrap;}
+.btn{
+  font-family:var(--font-mono); font-size:13px; letter-spacing:.06em; text-transform:uppercase;
+  padding:15px 26px; border-radius:3px; text-decoration:none; cursor:pointer;
+  border:1px solid transparent; display:inline-flex; align-items:center; gap:10px;
+  transition:transform .25s var(--ease), background .25s, border-color .25s, color .25s;
+}
+.btn:hover{transform:translateY(-2px);}
+.btn-primary{background:var(--leaf-300); color:var(--soil-950); font-weight:600;}
+.btn-primary:hover{background:var(--paper-50);}
+.btn-ghost{border-color:rgba(243,238,221,.35); color:var(--paper-50);}
+.btn-ghost:hover{border-color:var(--paper-50);}
+
+.hero-ticker{
+  position:relative; z-index:2;
+  margin-top:78px; border-top:1px solid rgba(243,238,221,.16);
+  padding-top:22px;
+  display:grid; grid-template-columns:repeat(3,1fr); gap:20px; max-width:640px;
+}
+.tick-item{font-family:var(--font-mono);}
+.tick-label{font-size:11px; letter-spacing:.1em; text-transform:uppercase; opacity:.55;}
+.tick-val{font-size:22px; margin-top:4px; color:var(--water-300);}
+.tick-val.leaf{color:var(--leaf-300);}
+.tick-val.clay{color:var(--clay-300);}
+@media (max-width:640px){ .hero-ticker{grid-template-columns:1fr 1fr; margin-top:52px;} }
+
+.scroll-cue{
+  position:absolute; bottom:28px; left:50%; transform:translateX(-50%); z-index:2;
+  font-family:var(--font-mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--paper-100); opacity:.55; display:flex; flex-direction:column; align-items:center; gap:8px;
+}
+.scroll-cue .line{width:1px; height:34px; background:linear-gradient(var(--leaf-300), transparent); animation:cueMove 1.8s ease-in-out infinite;}
+@keyframes cueMove{0%{transform:scaleY(0); transform-origin:top;} 50%{transform:scaleY(1); transform-origin:top;} 51%{transform-origin:bottom;} 100%{transform:scaleY(0); transform-origin:bottom;}}
+
+/* ============ SECTION HEADERS ============ */
+.head-row{display:flex; justify-content:space-between; align-items:flex-end; gap:40px; margin-bottom:56px;}
+.head-row h2{font-size:clamp(28px,3.6vw,44px); max-width:15ch;}
+.head-row .head-note{max-width:340px; font-size:14.5px; color:var(--ink-600); padding-bottom:4px;}
+@media (max-width:780px){ .head-row{flex-direction:column; align-items:flex-start; gap:16px; margin-bottom:40px;} }
+
+/* ============ PROBLEM ============ */
+.problem{background:var(--paper-50);}
+.problem-grid{display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:center;}
+@media (max-width:900px){ .problem-grid{grid-template-columns:1fr;} }
+.problem-copy p{color:var(--ink-600); font-size:16px; max-width:52ch;}
+.problem-copy p strong{color:var(--ink-900);}
+.leak-legend{display:flex; gap:22px; flex-wrap:wrap; margin:26px 0 30px;}
+.leak-legend .lg-item{display:flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-600);}
+.lg-dot{width:9px; height:9px; border-radius:50%;}
+.pipe-card{
+  background:var(--soil-900); border-radius:6px; padding:34px 28px 28px;
+  position:relative; min-height:420px; display:flex; flex-direction:column; justify-content:space-between;
+}
+.pipe-card svg{width:100%; height:auto;}
+.pipe-caption{font-family:var(--font-mono); font-size:11.5px; color:var(--paper-100); opacity:.5; letter-spacing:.05em;}
+.alert-card{
+  margin-top:16px; background:var(--soil-800); border:1px solid var(--clay-500); border-radius:5px;
+  padding:16px 18px; opacity:0; max-height:0; overflow:hidden; transition:opacity .4s var(--ease), max-height .5s var(--ease), padding .5s var(--ease);
+}
+.alert-card.show{opacity:1; max-height:200px; padding:16px 18px;}
+.alert-card .a-title{font-family:var(--font-mono); font-size:12px; color:var(--clay-300); text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px;}
+.alert-card p{margin:0; color:var(--paper-100); font-size:14px;}
+.leak-btn{
+  align-self:flex-start; margin-top:18px;
+  font-family:var(--font-mono); font-size:12px; text-transform:uppercase; letter-spacing:.06em;
+  background:none; border:1px solid rgba(243,238,221,.3); color:var(--paper-100);
+  padding:11px 18px; border-radius:3px; cursor:pointer; transition:border-color .25s, color .25s;
+}
+.leak-btn:hover{border-color:var(--water-300); color:var(--water-300);}
+.leak-point{cursor:pointer;}
+.leak-point circle.pulse{animation:leakPulse 2.2s ease-in-out infinite;}
+@keyframes leakPulse{0%,100%{opacity:.35; r:9;} 50%{opacity:.05; r:15;}}
+
+/* ============ BENEFÍCIOS ============ */
+.benefits{background:var(--paper-100);}
+.benefits-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:20px;}
+@media (max-width:860px){ .benefits-grid{grid-template-columns:1fr 1fr;} }
+@media (max-width:520px){ .benefits-grid{grid-template-columns:1fr;} }
+.benefit-card{background:var(--paper-50); border:1px solid var(--paper-200); border-radius:6px; padding:26px 22px; transition:transform .3s var(--ease), border-color .3s;}
+.benefit-card:hover{transform:translateY(-4px); border-color:var(--leaf-500);}
+.benefit-card .b-icon{width:34px; height:34px; margin-bottom:16px;}
+.benefit-card h4{font-family:var(--font-display); font-size:18px; font-weight:600; margin:0 0 8px;}
+.benefit-card p{font-size:13.5px; color:var(--ink-600); margin:0;}
+
+/* ============ COMO COMEÇAR ============ */
+.start{background:var(--soil-950); color:var(--paper-50);}
+.start .eyebrow{color:var(--water-300);}
+.start .head-row h2{color:var(--paper-50);}
+.start .head-note{color:var(--paper-200,#cbd0ba);}
+.start-steps{display:grid; grid-template-columns:repeat(3,1fr); gap:24px; position:relative;}
+@media (max-width:860px){ .start-steps{grid-template-columns:1fr;} }
+.start-step{background:var(--soil-900); border-radius:8px; padding:30px 26px; border:1px solid var(--soil-700);}
+.start-step .ss-num{font-family:var(--font-mono); font-size:12px; color:var(--leaf-300); letter-spacing:.08em;}
+.start-step h4{font-family:var(--font-display); font-size:21px; margin:12px 0 10px; font-weight:600;}
+.start-step p{font-size:14px; color:var(--paper-200,#cbd0ba); margin:0;}
+
+/* ============ APP ============ */
+.app-section{background:var(--soil-950); color:var(--paper-50); overflow:hidden;}
+.app-section .eyebrow{color:var(--water-300);}
+.app-grid{display:grid; grid-template-columns:1fr .82fr; gap:56px; align-items:center;}
+@media (max-width:900px){ .app-grid{grid-template-columns:1fr; text-align:left;} }
+.app-copy h2{font-size:clamp(28px,3.8vw,44px); color:var(--paper-50); margin-bottom:18px;}
+.app-copy h2 span{color:var(--leaf-300); font-style:italic;}
+.app-copy .lede{color:var(--paper-200,#cbd0ba); max-width:50ch; margin:0 0 30px; font-size:16px;}
+.app-feature-list{list-style:none; margin:0 0 36px; padding:0; display:flex; flex-direction:column; gap:14px;}
+.app-feature-list li{display:flex; align-items:center; gap:12px; font-size:14.5px; color:var(--paper-100);}
+.af-ico{font-size:18px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; background:var(--soil-800); border-radius:7px; flex-shrink:0;}
+.store-row{display:flex; align-items:center; gap:20px; flex-wrap:wrap;}
+.store-badge{
+  display:inline-flex; align-items:center; gap:11px; background:var(--soil-800); border:1px solid var(--soil-700);
+  border-radius:8px; padding:11px 20px 11px 16px; text-decoration:none; color:var(--paper-50);
+  transition:transform .25s var(--ease), border-color .25s, background .25s;
+}
+.store-badge:hover{transform:translateY(-2px); border-color:var(--leaf-400); background:var(--soil-700);}
+.store-badge-text{display:flex; flex-direction:column; line-height:1.25;}
+.store-badge-text small{font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:.06em; opacity:.6;}
+.store-badge-text{font-family:var(--font-body); font-size:16px; font-weight:600;}
+.store-note{font-size:12.5px; color:var(--paper-200,#cbd0ba); opacity:.75; max-width:220px;}
+.soon-tag{
+  font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:.06em;
+  background:var(--clay-500); color:var(--soil-950); padding:2px 7px; border-radius:3px; margin-right:4px;
+}
+.app-visual{display:flex; justify-content:center;}
+.phone-mock{filter:drop-shadow(0 24px 50px rgba(0,0,0,.4)); animation:phoneFloat 6s ease-in-out infinite;}
+.phone-mock svg{max-width:230px; height:auto;}
+@keyframes phoneFloat{0%,100%{transform:translateY(0);} 50%{transform:translateY(-12px);}}
+@media (prefers-reduced-motion: reduce){ .phone-mock{animation:none;} }
+
+/* ============ APP SHELL (PWA / mobile app) ============ */
+html{ -webkit-tap-highlight-color: transparent; }
+body{
+  overscroll-behavior-y: none;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.nav{ padding-top: calc(20px + env(safe-area-inset-top)); }
+.nav.scrolled{ padding-top: calc(13px + env(safe-area-inset-top)); }
+.mobile-menu{ padding-top: calc(32px + env(safe-area-inset-top)); }
+
+.install-btn{
+  display:none; align-items:center; gap:7px;
+  font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:.06em;
+  background:var(--leaf-300); color:var(--soil-950); border:none; border-radius:3px;
+  padding:9px 14px; cursor:pointer; margin-left:12px; font-weight:600;
+}
+.install-btn.show{ display:inline-flex; }
+.install-btn svg{ width:14px; height:14px; }
+
+.offline-banner{
+  position:fixed; top:0; left:0; right:0; z-index:200;
+  background:var(--clay-500); color:var(--soil-950); text-align:center;
+  font-family:var(--font-mono); font-size:12px; letter-spacing:.04em;
+  padding:10px 16px calc(10px + env(safe-area-inset-top));
+  padding-top:calc(10px + env(safe-area-inset-top));
+  transform:translateY(-100%); transition:transform .35s var(--ease);
+}
+.offline-banner.show{ transform:translateY(0); }
+
+/* Bottom app tab bar — mobile / installed app pattern */
+.tab-bar{
+  position:fixed; left:0; right:0; bottom:0; z-index:95;
+  display:none; justify-content:space-around; align-items:stretch;
+  background:rgba(15,19,11,.94); backdrop-filter:blur(14px);
+  border-top:1px solid rgba(243,238,221,.12);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.tab-bar a{
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+  padding:9px 4px 8px; text-decoration:none; color:var(--paper-100); opacity:.55;
+  font-family:var(--font-mono); font-size:10px; letter-spacing:.02em; text-transform:uppercase;
+  transition:opacity .25s, color .25s;
+}
+.tab-bar a .tb-ico{ width:20px; height:20px; display:flex; align-items:center; justify-content:center; }
+.tab-bar a .tb-ico svg{ width:20px; height:20px; }
+.tab-bar a.active{ opacity:1; color:var(--leaf-300); }
+@media (max-width:900px){
+  .tab-bar{ display:flex; }
+  body{ padding-bottom: calc(58px + env(safe-area-inset-bottom)); }
+}
+
+/* iOS install instructions modal */
+.ios-modal-backdrop{
+  position:fixed; inset:0; z-index:210; background:rgba(15,19,11,.72); backdrop-filter:blur(4px);
+  display:flex; align-items:flex-end; justify-content:center;
+  opacity:0; visibility:hidden; transition:opacity .3s var(--ease), visibility 0s linear .3s;
+}
+.ios-modal-backdrop.show{ opacity:1; visibility:visible; transition:opacity .3s var(--ease); }
+.ios-modal{
+  background:var(--paper-50); border-radius:14px 14px 0 0; padding:28px 26px calc(30px + env(safe-area-inset-bottom));
+  max-width:440px; width:100%; transform:translateY(16px); transition:transform .35s var(--ease);
+}
+.ios-modal-backdrop.show .ios-modal{ transform:translateY(0); }
+.ios-modal h3{ font-family:var(--font-display); font-size:20px; margin:0 0 12px; }
+.ios-modal ol{ margin:0 0 20px; padding-left:20px; color:var(--ink-600); font-size:14.5px; display:flex; flex-direction:column; gap:8px; }
+.ios-modal ol li strong{ color:var(--ink-900); }
+.ios-modal button{
+  width:100%; font-family:var(--font-mono); font-size:12.5px; text-transform:uppercase; letter-spacing:.06em;
+  background:var(--ink-900); color:var(--paper-50); border:none; padding:14px; border-radius:4px; cursor:pointer;
+}
+
+/* ============ FAQ ============ */
+.faq{background:var(--paper-50);}
+.faq-list{max-width:760px;}
+.faq-item{border-bottom:1px solid var(--paper-200);}
+.faq-q{
+  width:100%; text-align:left; background:none; border:none; cursor:pointer;
+  padding:24px 0; display:flex; justify-content:space-between; align-items:center; gap:20px;
+  font-family:var(--font-display); font-size:18px; font-weight:600; color:var(--ink-900);
+}
+.faq-q .faq-plus{font-family:var(--font-mono); font-size:20px; color:var(--leaf-600); transition:transform .35s var(--ease); flex-shrink:0;}
+.faq-item.open .faq-q .faq-plus{transform:rotate(45deg);}
+.faq-a{max-height:0; overflow:hidden; transition:max-height .45s var(--ease);}
+.faq-a p{margin:0 0 24px; color:var(--ink-600); font-size:14.5px; max-width:60ch;}
+
+/* ============ CONTATO ============ */
+.contact{background:var(--leaf-600); color:var(--paper-50);}
+.contact-wrap{max-width:760px; text-align:center;}
+.contact h2{color:var(--paper-50); font-size:clamp(28px,4vw,46px); max-width:16ch; margin:0 auto 18px;}
+.contact p.lede{max-width:52ch; margin:0 auto 34px; opacity:.9; font-size:16px;}
+.contact .btn-row{justify-content:center;}
+.contact .btn-primary{background:var(--paper-50); color:var(--leaf-700, #2E4A24);}
+.contact .btn-primary:hover{background:var(--soil-950); color:var(--paper-50);}
+.contact .btn-ghost{border-color:rgba(251,248,239,.5);}
+.contact-form{text-align:left; background:rgba(15,19,11,.16); border:1px solid rgba(251,248,239,.22); border-radius:10px; padding:32px; margin-top:8px;}
+.cf-row{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+@media (max-width:640px){ .cf-row{grid-template-columns:1fr;} }
+.cf-field{display:flex; flex-direction:column; gap:6px; margin-bottom:18px;}
+.cf-field label{font-family:var(--font-mono); font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; opacity:.85;}
+.cf-field input, .cf-field select, .cf-field textarea{
+  font-family:var(--font-body); font-size:14.5px; padding:12px 14px; border-radius:5px;
+  border:1px solid rgba(251,248,239,.35); background:rgba(251,248,239,.94); color:var(--ink-900);
+  transition:border-color .25s, box-shadow .25s;
+}
+.cf-field input:focus, .cf-field select:focus, .cf-field textarea:focus{
+  outline:none; border-color:var(--soil-950); box-shadow:0 0 0 3px rgba(251,248,239,.35);
+}
+.cf-field textarea{resize:vertical; min-height:70px; font-family:var(--font-body);}
+.cf-error{display:none; font-family:var(--font-mono); font-size:11.5px; color:var(--clay-300);}
+.cf-field.invalid input, .cf-field.invalid select{border-color:var(--clay-500); box-shadow:0 0 0 3px rgba(190,124,65,.25);}
+.cf-field.invalid .cf-error{display:block;}
+.cf-bottom{display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin-top:6px;}
+.cf-status{font-family:var(--font-mono); font-size:12.5px; opacity:.9;}
+.cf-status.ok{color:var(--soil-950); font-weight:600;}
+.cf-fallback{font-size:12.5px; opacity:.75; margin:18px 0 0;}
+.cf-fallback a{text-decoration:underline;}
+
+/* ============ HOW IT WORKS (tabs) ============ */
+.how{background:var(--soil-950); color:var(--paper-50);}
+.how .eyebrow{color:var(--leaf-300);}
+.how .head-row h2{color:var(--paper-50);}
+.how .head-note{color:var(--paper-200,#cfd2bd);}
+.tabs-nav{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:40px; border-bottom:1px solid rgba(243,238,221,.14); padding-bottom:0;}
+.tab-btn{
+  font-family:var(--font-mono); font-size:12.5px; text-transform:uppercase; letter-spacing:.06em;
+  background:none; border:none; color:var(--paper-100); opacity:.55; cursor:pointer;
+  padding:12px 6px 16px; margin-right:14px; border-bottom:2px solid transparent; transition:opacity .25s, border-color .25s;
+}
+.tab-btn.active{opacity:1; color:var(--leaf-300); border-color:var(--leaf-300);}
+.tab-panels{position:relative; min-height:280px;}
+.tab-panel{display:none; grid-template-columns:1fr 1.1fr; gap:56px; align-items:center;}
+.tab-panel.active{display:grid;}
+@media (max-width:860px){ .tab-panel.active{grid-template-columns:1fr;} }
+.tab-panel h3{font-size:clamp(22px,2.6vw,30px); margin-bottom:14px; color:var(--paper-50);}
+.tab-panel p{color:var(--paper-200,#cbd0ba); font-size:15px; max-width:48ch;}
+.tab-list{list-style:none; margin:22px 0 0; padding:0; display:flex; flex-direction:column; gap:12px;}
+.tab-list li{
+  font-size:14px; color:var(--paper-100); display:flex; gap:10px; padding:12px 14px; background:var(--soil-800); border-radius:4px; border-left:2px solid var(--leaf-500);
+}
+.tab-visual{background:var(--soil-800); border-radius:6px; min-height:260px; display:flex; align-items:center; justify-content:center; padding:24px;}
+.tab-visual svg{width:100%; max-width:340px;}
+
+/* ============ DASHBOARD ============ */
+.dash{background:var(--paper-100);}
+.dash-panel{
+  background:var(--soil-950); border-radius:8px; padding:32px; color:var(--paper-50);
+  display:grid; grid-template-columns:1.1fr 1fr; gap:36px;
+}
+@media (max-width:860px){ .dash-panel{grid-template-columns:1fr;} }
+.dash-readouts{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+.readout{background:var(--soil-900); border-radius:6px; padding:18px 18px 16px; border:1px solid var(--soil-700);}
+.readout .r-label{font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--paper-100); opacity:.55;}
+.readout .r-val{font-family:var(--font-mono); font-size:30px; margin-top:8px; color:var(--water-300);}
+.readout .r-val.humid{color:var(--leaf-300);}
+.readout .r-val.pressure{color:var(--clay-300);}
+.readout .r-val.risk{color:var(--paper-50); font-size:16px; margin-top:12px;}
+.spark{margin-top:10px; height:34px; width:100%;}
+.dash-side{display:flex; flex-direction:column; justify-content:space-between;}
+.dash-side .msg-box{background:var(--soil-800); border-radius:6px; padding:18px 20px; margin-bottom:18px;}
+.dash-side .msg-eyebrow{font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--leaf-300); margin-bottom:8px;}
+.dash-side .msg-text{font-size:15.5px; line-height:1.5;}
+.toggle-row{display:flex; align-items:center; gap:12px; margin-top:auto;}
+.toggle-row span{font-family:var(--font-mono); font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; opacity:.7;}
+.switch{position:relative; width:52px; height:28px; background:var(--soil-700); border-radius:20px; border:none; cursor:pointer;}
+.switch .knob{position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:var(--clay-300); transition:transform .35s var(--ease), background .35s;}
+.switch.night .knob{transform:translateX(24px); background:var(--water-300);}
+
+/* ============ VISION ============ */
+.vision{background:var(--paper-50);}
+.vision-grid{display:grid; grid-template-columns:.9fr 1.1fr; gap:56px; align-items:center;}
+@media (max-width:900px){ .vision-grid{grid-template-columns:1fr;} }
+.leaf-card{background:var(--soil-900); border-radius:8px; padding:30px; position:relative; overflow:hidden;}
+.leaf-card svg{width:100%; max-width:280px; margin:0 auto;}
+.scanline{
+  position:absolute; left:0; right:0; height:3px; top:0;
+  background:linear-gradient(90deg, transparent, var(--water-300), transparent);
+  opacity:0;
+}
+.scanline.run{animation:scanRun 1.4s ease-in-out;}
+@keyframes scanRun{
+  0%{opacity:0; top:8%;}
+  10%{opacity:1;}
+  90%{opacity:1;}
+  100%{opacity:0; top:88%;}
+}
+.vision-copy p{color:var(--ink-600); max-width:50ch;}
+.scan-btn{
+  margin-top:12px; font-family:var(--font-mono); font-size:12.5px; text-transform:uppercase; letter-spacing:.06em;
+  background:var(--ink-900); color:var(--paper-50); border:none; padding:14px 22px; border-radius:3px; cursor:pointer;
+  transition:transform .25s var(--ease), background .25s;
+}
+.scan-btn:hover{transform:translateY(-2px); background:var(--leaf-600);}
+.result-list{list-style:none; margin:24px 0 0; padding:0; display:flex; flex-direction:column; gap:10px; min-height:100px;}
+.result-list li{
+  font-family:var(--font-mono); font-size:13.5px; padding:12px 14px; border-radius:4px; background:var(--paper-100);
+  opacity:0; transform:translateX(-8px); transition:opacity .4s var(--ease), transform .4s var(--ease); display:flex; gap:10px;
+}
+.result-list li.show{opacity:1; transform:translateX(0);}
+.result-list li.ok{border-left:3px solid var(--leaf-500);}
+.result-list li.warn{border-left:3px solid var(--clay-500);}
+
+/* ============ BIOMIMICRY ============ */
+.bio{background:var(--soil-950); color:var(--paper-50);}
+.bio .eyebrow{color:var(--water-300);}
+.bio .head-row h2{color:var(--paper-50);}
+.bio .head-note{color:var(--paper-200,#cbd0ba);}
+.bio-grid{display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:center;}
+@media (max-width:900px){ .bio-grid{grid-template-columns:1fr;} }
+.bio-copy p{color:var(--paper-200,#cbd0ba); max-width:50ch; font-size:15px;}
+.bio-stats{display:flex; gap:34px; margin-top:26px;}
+.bio-stat .bs-num{font-family:var(--font-mono); font-size:30px; color:var(--water-300);}
+.bio-stat .bs-lbl{font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:.07em; opacity:.6; margin-top:4px; max-width:16ch;}
+.wipe-card{background:var(--soil-800); border-radius:8px; padding:20px; text-align:center;}
+.wipe-canvas-wrap{position:relative; border-radius:6px; overflow:hidden; touch-action:none; cursor:crosshair;}
+.wipe-canvas-wrap canvas{display:block; width:100%; height:280px;}
+.wipe-caption{font-family:var(--font-mono); font-size:11.5px; opacity:.55; margin-top:14px; letter-spacing:.03em;}
+
+/* ============ MARKETPLACE ============ */
+.market{background:var(--paper-100);}
+.chips{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:36px;}
+.chip{
+  font-family:var(--font-mono); font-size:12.5px; text-transform:uppercase; letter-spacing:.05em;
+  padding:10px 18px; border-radius:20px; border:1px solid var(--ink-900); background:transparent; cursor:pointer;
+  transition:background .25s, color .25s;
+}
+.chip.active{background:var(--ink-900); color:var(--paper-50);}
+.buyer-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px;}
+@media (max-width:860px){ .buyer-grid{grid-template-columns:1fr 1fr;} }
+@media (max-width:560px){ .buyer-grid{grid-template-columns:1fr;} }
+.buyer-card{
+  background:var(--paper-50); border-radius:6px; padding:22px; border:1px solid var(--paper-200);
+  transition:opacity .3s, transform .3s;
+}
+.buyer-card.hide{display:none;}
+.buyer-card .bc-type{font-family:var(--font-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--leaf-600);}
+.buyer-card h4{font-family:var(--font-display); font-size:19px; margin:8px 0 6px; font-weight:600;}
+.buyer-card p{font-size:13px; color:var(--ink-600); margin:0 0 12px;}
+.buyer-card .bc-price{font-family:var(--font-mono); font-size:13px; color:var(--clay-500); font-weight:600;}
+
+/* ============ FOOTER ============ */
+footer{background:var(--soil-950); color:var(--paper-100); padding:76px 0 34px;}
+.footer-top{display:flex; justify-content:space-between; gap:40px; flex-wrap:wrap; padding-bottom:52px; border-bottom:1px solid rgba(243,238,221,.12);}
+.footer-mark{font-family:var(--font-display); font-size:34px; font-weight:700; color:var(--paper-50); display:flex; align-items:center; gap:12px;}
+.footer-mark img{width:42px; height:42px; border-radius:50%; box-shadow:0 0 0 1.5px rgba(243,238,221,.2);}
+.footer-tag{font-size:14px; opacity:.6; max-width:34ch; margin-top:10px;}
+.footer-links{display:flex; gap:60px; flex-wrap:wrap;}
+.footer-col h5{font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:.08em; opacity:.5; margin:0 0 14px;}
+.footer-col ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px;}
+.footer-col a{text-decoration:none; font-size:14px; opacity:.8;}
+.footer-col a:hover{opacity:1; color:var(--leaf-300);}
+.footer-bottom{display:flex; justify-content:space-between; padding-top:26px; font-family:var(--font-mono); font-size:11.5px; opacity:.45; flex-wrap:wrap; gap:10px;}
+</style>
+</head>
+<body>
+
+<nav class="nav" id="nav">
+  <a href="#top" class="nav-mark">
+    <img src="icons/icon-96.png" alt="Símbolo BLOOM">
+    BLOOM
+  </a>
+  <ul class="nav-links">
+    <li><a href="#problema">O problema</a></li>
+    <li><a href="#como-funciona">Como funciona</a></li>
+    <li><a href="#painel">Painel</a></li>
+    <li><a href="#biomimetica">Durabilidade</a></li>
+    <li><a href="#mercado">Mercado</a></li>
+    <li><a href="#app">App</a></li>
+    <li><a href="#duvidas">Dúvidas</a></li>
+    <li><a href="#contato" class="nav-cta">Contato</a></li>
+  </ul>
+  <button class="install-btn" id="installBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 19h16"/></svg>
+    Instalar app
+  </button>
+  <button class="nav-toggle" id="navToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobileMenu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#problema">O problema</a>
+  <a href="#como-funciona">Como funciona</a>
+  <a href="#painel">Painel</a>
+  <a href="#biomimetica">Durabilidade</a>
+  <a href="#mercado">Mercado</a>
+  <a href="#app">App</a>
+  <a href="#duvidas">Dúvidas</a>
+  <a href="#contato" class="nav-cta">Contato</a>
+</div>
+
+<div class="offline-banner" id="offlineBanner">Você está offline — mostrando a última versão salva.</div>
+
+<nav class="tab-bar" id="tabBar">
+  <a href="#top" data-tab="top" class="active">
+    <span class="tb-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1v-9"/></svg></span>
+    Início
+  </a>
+  <a href="#painel" data-tab="painel">
+    <span class="tb-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
+    Painel
+  </a>
+  <a href="#app" data-tab="app">
+    <span class="tb-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg></span>
+    App
+  </a>
+  <a href="#mercado" data-tab="mercado">
+    <span class="tb-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9h16v10a1 1 0 01-1 1H5a1 1 0 01-1-1V9z"/><path d="M9 13a3 3 0 006 0"/></svg></span>
+    Mercado
+  </a>
+  <a href="#contato" data-tab="contato">
+    <span class="tb-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 4h16v13H7l-3 3V4z"/></svg></span>
+    Contato
+  </a>
+</nav>
+
+<div class="ios-modal-backdrop" id="iosModalBackdrop">
+  <div class="ios-modal">
+    <h3>Instalar o Bloom no iPhone</h3>
+    <ol>
+      <li>Toque no ícone de <strong>Compartilhar</strong> (o quadrado com a seta) na barra do Safari.</li>
+      <li>Escolha <strong>"Adicionar à Tela de Início"</strong>.</li>
+      <li>Toque em <strong>Adicionar</strong> — o Bloom aparece como um app, com ícone próprio.</li>
+    </ol>
+    <button id="iosModalClose">Entendi</button>
+  </div>
+</div>
+
+<!-- ================= HERO ================= -->
+<header class="hero" id="top">
+  <canvas id="dropletCanvas"></canvas>
+  <div class="hero-inner wrap">
+    <p class="eyebrow hero-eyebrow">Projeto BLOOM — irrigação inteligente para a pequena lavoura</p>
+    <h1>A lavoura já avisa quando algo vai mal. <em>Faltava alguém pra escutar.</em></h1>
+    <p class="lede">Sensores de umidade, temperatura e pressão detectam vazamentos na mangueira antes que a planta sinta falta d'água. Uma IA decide quando irrigar. Uma câmera vigia a folha. E um mercado conecta a colheita a quem quer comprar — tudo isso pensado pra caber no bolso de quem planta pequeno.</p>
+    <div class="btn-row">
+      <a href="#como-funciona" class="btn btn-primary">Ver como funciona</a>
+      <a href="#contato" class="btn btn-ghost">Falar com a gente</a>
+    </div>
+    <div class="hero-ticker">
+      <div class="tick-item">
+        <div class="tick-label">Temperatura</div>
+        <div class="tick-val" id="heroTemp">24.6 °C</div>
+      </div>
+      <div class="tick-item">
+        <div class="tick-label">Umidade do solo</div>
+        <div class="tick-val leaf" id="heroHumid">58 %</div>
+      </div>
+      <div class="tick-item">
+        <div class="tick-label">Pressão da linha</div>
+        <div class="tick-val clay" id="heroPressure">1.8 bar</div>
+      </div>
+    </div>
+  </div>
+  <div class="scroll-cue"><span>Role pra explorar</span><span class="line"></span></div>
+</header>
+
+<!-- ================= PROBLEMA ================= -->
+<section class="problem section" id="problema">
+  <div class="wrap">
+    <div class="problem-grid">
+      <div class="problem-copy reveal">
+        <p class="eyebrow" style="color:var(--clay-500)">O problema</p>
+        <h2 style="font-size:clamp(26px,3.2vw,38px); margin-bottom:22px; max-width:14ch;">Uma mangueira furada custa caro — e quase ninguém percebe a tempo</h2>
+        <p>Ferrugem no cano, um corte sem querer na hora da capina, uma mordida de cachorro perdida no meio do canteiro: pequenos danos que ficam invisíveis até a planta já estar sofrendo. Sistemas de monitoramento existem, mas quase sempre são caros demais pra caber na realidade de quem planta em pequena escala.</p>
+        <p>A BLOOM parte de uma lógica simples: <strong>se a pressão da linha cai mas a bomba continua ligada, existe vazamento</strong> — não importa onde. Simulamos isso em bancada, com uma mangueira propositalmente danificada em três pontos, pra provar que o sistema pega o problema antes que ele vire prejuízo.</p>
+        <div class="leak-legend">
+          <div class="lg-item"><span class="lg-dot" style="background:var(--clay-500)"></span>Ferrugem</div>
+          <div class="lg-item"><span class="lg-dot" style="background:var(--water-500)"></span>Corte</div>
+          <div class="lg-item"><span class="lg-dot" style="background:#B15C5C"></span>Mordida</div>
+        </div>
+      </div>
+      <div class="pipe-card reveal">
+        <svg viewBox="0 0 420 200" id="pipeSvg">
+          <line x1="20" y1="100" x2="400" y2="100" stroke="#3A4728" stroke-width="10" stroke-linecap="round"/>
+          <line x1="20" y1="100" x2="400" y2="100" stroke="var(--water-600)" stroke-width="4" stroke-linecap="round" stroke-dasharray="6 10" id="flowLine"/>
+          <!-- pump -->
+          <rect x="4" y="82" width="32" height="36" rx="4" fill="#212A16" stroke="#3A4728"/>
+          <text x="20" y="135" fill="#F3EEDD" opacity=".5" font-family="IBM Plex Mono" font-size="9" text-anchor="middle">BOMBA</text>
+          <!-- leak points -->
+          <g class="leak-point" data-leak="ferrugem" data-title="Ferrugem no cano" data-desc="Pressão caiu 12% em 40s com a bomba ainda ligada — corrosão abrindo um furo lento na parte inferior do cano." tabindex="0" role="button" aria-label="Simular vazamento por ferrugem">
+            <circle class="pulse" cx="140" cy="100" r="9" fill="var(--clay-500)" opacity=".3"/>
+            <circle cx="140" cy="100" r="5" fill="var(--clay-500)"/>
+          </g>
+          <g class="leak-point" data-leak="corte" data-title="Corte acidental" data-desc="Queda abrupta de pressão: 21% em 8 segundos. Padrão típico de corte reto — provável ferramenta de capina." tabindex="0" role="button" aria-label="Simular vazamento por corte">
+            <circle class="pulse" cx="240" cy="100" r="9" fill="var(--water-500)" opacity=".3"/>
+            <circle cx="240" cy="100" r="5" fill="var(--water-500)"/>
+          </g>
+          <g class="leak-point" data-leak="mordida" data-title="Mordida de cachorro" data-desc="Furo irregular detectado. Vazão instável, pressão oscilando ±30% — consistente com múltiplas perfurações pequenas." tabindex="0" role="button" aria-label="Simular vazamento por mordida">
+            <circle class="pulse" cx="330" cy="100" r="9" fill="#B15C5C" opacity=".3"/>
+            <circle cx="330" cy="100" r="5" fill="#B15C5C"/>
+          </g>
+          <!-- sensor -->
+          <rect x="392" y="86" width="20" height="28" rx="3" fill="#212A16" stroke="var(--leaf-400)"/>
+        </svg>
+        <p class="pipe-caption">Toque em um dos pontos — ou simule — pra ver o alerta que o app receberia.</p>
+        <button class="leak-btn" id="simulateLeak">Simular vazamento aleatório</button>
+        <div class="alert-card" id="alertCard">
+          <div class="a-title" id="alertTitle">Vazamento detectado</div>
+          <p id="alertDesc"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= BENEFÍCIOS ================= -->
+<section class="benefits section" id="beneficios" style="padding-top:0;">
+  <div class="wrap">
+    <div class="head-row reveal">
+      <h2>O que a BLOOM foi pensada pra te entregar</h2>
+      <p class="head-note">Sem letra miúda: é isto que o sistema resolve no dia a dia da sua lavoura.</p>
+    </div>
+    <div class="benefits-grid reveal">
+      <div class="benefit-card">
+        <svg class="b-icon" viewBox="0 0 34 34" fill="none"><path d="M17 3C17 3 6 15 6 22C6 28.08 10.92 32 17 32C23.08 32 28 28.08 28 22C28 15 17 3 17 3Z" stroke="var(--water-500)" stroke-width="2"/></svg>
+        <h4>Menos água desperdiçada</h4>
+        <p>Vazamento avisado na hora, não semanas depois — a água que seria perdida vira economia real.</p>
+      </div>
+      <div class="benefit-card">
+        <svg class="b-icon" viewBox="0 0 34 34" fill="none"><circle cx="17" cy="17" r="13" stroke="var(--leaf-500)" stroke-width="2"/><path d="M17 9V17L22 20" stroke="var(--leaf-500)" stroke-width="2" stroke-linecap="round"/></svg>
+        <h4>Alerta em tempo real</h4>
+        <p>O celular avisa na hora que a pressão cai fora do normal — sem precisar caminhar até o canteiro pra descobrir.</p>
+      </div>
+      <div class="benefit-card">
+        <svg class="b-icon" viewBox="0 0 34 34" fill="none"><rect x="6" y="6" width="22" height="22" rx="4" stroke="var(--clay-500)" stroke-width="2"/><circle cx="17" cy="17" r="6" stroke="var(--clay-500)" stroke-width="2"/></svg>
+        <h4>Planta vigiada todo dia</h4>
+        <p>Fotos automáticas apontam folha amarela ou sinal de doença antes de virar prejuízo na colheita inteira.</p>
+      </div>
+      <div class="benefit-card">
+        <svg class="b-icon" viewBox="0 0 34 34" fill="none"><path d="M6 24 L14 24 L14 12 L22 12 L22 20 L28 20" stroke="var(--water-500)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <h4>Comprador mais perto</h4>
+        <p>Na hora da colheita, o app já mostra cooperativas e feiras da região interessadas em comprar.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= COMO FUNCIONA ================= -->
+<section class="how section" id="como-funciona">
+  <div class="wrap">
+    <div class="head-row reveal">
+      <h2>Quatro sistemas cuidando de uma única planta</h2>
+      <p class="head-note">Hardware, inteligência artificial, visão computacional e um mercado — cada peça resolve uma dor real de quem planta pequeno.</p>
+    </div>
+    <div class="tabs-nav reveal">
+      <button class="tab-btn active" data-tab="sensores">01 · Sensores</button>
+      <button class="tab-btn" data-tab="ia">02 · Cérebro (IA)</button>
+      <button class="tab-btn" data-tab="visao">03 · Visão</button>
+      <button class="tab-btn" data-tab="mercado">04 · Mercado</button>
+    </div>
+    <div class="tab-panels reveal">
+      <div class="tab-panel active" data-panel="sensores">
+        <div>
+          <h3>Sensores</h3>
+          <p>Um sensor de umidade, um de temperatura e um de pressão na linha d'água — todos lendo em tempo real e enviando os dados direto pro seu aplicativo.</p>
+          <ul class="tab-list">
+            <li>Leitura de umidade do solo em ciclo contínuo</li>
+            <li>Temperatura e umidade do ar monitoradas o tempo todo</li>
+            <li>Pressão da linha detecta queda mesmo com a bomba ligada</li>
+            <li>Tudo conectado por Wi-Fi, sem fiação extra</li>
+          </ul>
+        </div>
+        <div class="tab-visual">
+          <svg viewBox="0 0 300 220"><g fill="none" stroke="var(--leaf-400)" stroke-width="1.6">
+            <rect x="30" y="70" width="60" height="80" rx="4"/>
+            <rect x="120" y="50" width="60" height="100" rx="4"/>
+            <rect x="210" y="70" width="60" height="80" rx="4"/>
+            <path d="M60 70 V30 M150 50 V30 M240 70 V30" stroke-dasharray="3 4"/>
+            <circle cx="60" cy="20" r="8"/><circle cx="150" cy="20" r="8"/><circle cx="240" cy="20" r="8"/>
+          </g>
+          <text x="60" y="110" fill="var(--paper-50)" font-family="IBM Plex Mono" font-size="9" text-anchor="middle">UMID.</text>
+          <text x="150" y="105" fill="var(--paper-50)" font-family="IBM Plex Mono" font-size="9" text-anchor="middle">TEMP.</text>
+          <text x="240" y="110" fill="var(--paper-50)" font-family="IBM Plex Mono" font-size="9" text-anchor="middle">PRESSÃO</text>
+          </svg>
+        </div>
+      </div>
+      <div class="tab-panel" data-panel="ia">
+        <div>
+          <h3>Cérebro (IA)</h3>
+          <p>Uma inteligência artificial cruza temperatura, umidade e horário pra decidir a irrigação — e a mesma leitura de pressão vira alerta de vazamento em tempo real.</p>
+          <ul class="tab-list">
+            <li>"Hoje não irriga" quando a umidade já está no ponto certo</li>
+            <li>"Põe água em 3 horas" prevendo a curva de secagem</li>
+            <li>Cruza pressão × estado da bomba pra apontar vazamento</li>
+            <li>Notificação direto no celular do produtor</li>
+          </ul>
+        </div>
+        <div class="tab-visual">
+          <svg viewBox="0 0 300 220"><g fill="none" stroke="var(--water-300)" stroke-width="1.6">
+            <circle cx="150" cy="110" r="46"/>
+            <circle cx="150" cy="110" r="46" stroke-dasharray="4 6" opacity=".5"/>
+            <path d="M60 60 L104 96 M240 60 L196 96 M60 160 L104 124 M240 160 L196 124" stroke-dasharray="3 4"/>
+            <circle cx="60" cy="60" r="6"/><circle cx="240" cy="60" r="6"/><circle cx="60" cy="160" r="6"/><circle cx="240" cy="160" r="6"/>
+          </g>
+          <text x="150" y="114" fill="var(--paper-50)" font-family="IBM Plex Mono" font-size="9" text-anchor="middle">IA</text>
+          </svg>
+        </div>
+      </div>
+      <div class="tab-panel" data-panel="visao">
+        <div>
+          <h3>Visão</h3>
+          <p>Uma câmera fotografa a plantação periodicamente pra flagrar folha amarela, sinal de falta d'água ou início de doença — antes que se espalhe pelo canteiro.</p>
+          <ul class="tab-list">
+            <li>Fotos automáticas em intervalos programados</li>
+            <li>Detecção de folha amarelada ou murcha</li>
+            <li>Sinaliza possíveis doenças na plantação</li>
+            <li>Histórico visual pra acompanhar a evolução</li>
+          </ul>
+        </div>
+        <div class="tab-visual">
+          <svg viewBox="0 0 300 220"><g fill="none" stroke="var(--clay-300)" stroke-width="1.6">
+            <rect x="90" y="60" width="120" height="90" rx="6"/>
+            <circle cx="150" cy="105" r="22"/>
+            <path d="M90 150 L130 60 M210 150 L170 60" stroke-dasharray="3 4" opacity=".6"/>
+          </g>
+          <text x="150" y="180" fill="var(--paper-50)" font-family="IBM Plex Mono" font-size="9" text-anchor="middle">CÂMERA DE MONITORAMENTO</text>
+          </svg>
+        </div>
+      </div>
+      <div class="tab-panel" data-panel="mercado">
+        <div>
+          <h3>Mercado</h3>
+          <p>Quando a colheita fica pronta, uma tela simples pergunta "quer vender?" e mostra compradores, cooperativas e a CEASA mais próxima — fechando o ciclo entre plantar e vender.</p>
+          <ul class="tab-list">
+            <li>Aviso automático quando a IA de visão indica colheita pronta</li>
+            <li>Lista de cooperativas, feiras e CEASA na região</li>
+            <li>Interface pensada pra qualquer idade, sem letrinha miúda</li>
+            <li>Fecha o ciclo: sensor → planta saudável → venda</li>
+          </ul>
+        </div>
+        <div class="tab-visual">
+          <svg viewBox="0 0 300 220"><g fill="none" stroke="var(--leaf-300)" stroke-width="1.6">
+            <rect x="40" y="50" width="80" height="60" rx="5"/>
+            <rect x="140" y="50" width="80" height="60" rx="5"/>
+            <rect x="90" y="130" width="80" height="60" rx="5"/>
+            <path d="M150 20 L80 50 M150 20 L180 50 M150 20 L130 130" stroke-dasharray="3 4" opacity=".6"/>
+            <circle cx="150" cy="20" r="7"/>
+          </g>
+          <text x="150" y="205" fill="var(--paper-50)" font-family="IBM Plex Mono" font-size="9" text-anchor="middle">COMPRADORES · CEASA · COOPERATIVAS</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PAINEL ================= -->
+<section class="dash section" id="painel">
+  <div class="wrap">
+    <div class="head-row reveal">
+      <h2>Um painel que fala a língua de quem tá na lavoura</h2>
+      <p class="head-note">Leituras simuladas em tempo real — exatamente o que chegaria no celular do produtor.</p>
+    </div>
+    <div class="dash-panel reveal">
+      <div class="dash-readouts">
+        <div class="readout">
+          <div class="r-label">Temperatura</div>
+          <div class="r-val" id="dTemp">24.6 °C</div>
+          <canvas class="spark" id="sparkTemp"></canvas>
+        </div>
+        <div class="readout">
+          <div class="r-label">Umidade do solo</div>
+          <div class="r-val humid" id="dHumid">58 %</div>
+          <canvas class="spark" id="sparkHumid"></canvas>
+        </div>
+        <div class="readout">
+          <div class="r-label">Pressão da linha</div>
+          <div class="r-val pressure" id="dPressure">1.8 bar</div>
+          <canvas class="spark" id="sparkPressure"></canvas>
+        </div>
+        <div class="readout">
+          <div class="r-label">Risco de vazamento</div>
+          <div class="r-val risk" id="dRisk">Baixo — linha estável</div>
+        </div>
+      </div>
+      <div class="dash-side">
+        <div class="msg-box">
+          <div class="msg-eyebrow">Recomendação da IA</div>
+          <div class="msg-text" id="aiMsg">Umidade do solo em nível ideal. Hoje não precisa irrigar — reviso às 18h.</div>
+        </div>
+        <div class="msg-box" style="margin-bottom:0;">
+          <div class="msg-eyebrow">Janela sugerida</div>
+          <div class="msg-text" id="aiWindow">Próxima checagem em 3 horas.</div>
+        </div>
+        <div class="toggle-row">
+          <span>Manhã</span>
+          <button class="switch" id="dayNightSwitch" aria-label="Alternar entre manhã e noite" aria-pressed="false"><span class="knob"></span></button>
+          <span>Noite</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= VISÃO ================= -->
+<section class="vision section" id="visao">
+  <div class="wrap">
+    <div class="vision-grid">
+      <div class="leaf-card reveal">
+        <div class="scanline" id="scanline"></div>
+        <svg viewBox="0 0 200 240" id="leafSvg">
+          <path d="M100 20 C40 60 30 140 60 200 C75 225 125 225 140 200 C170 140 160 60 100 20 Z" fill="none" stroke="var(--leaf-400)" stroke-width="2"/>
+          <path d="M100 24 L100 214" stroke="var(--leaf-400)" stroke-width="1.4" opacity=".6"/>
+          <path d="M100 60 L65 90 M100 60 L135 90 M100 100 L60 130 M100 100 L140 130 M100 145 L70 172 M100 145 L130 172" stroke="var(--leaf-400)" stroke-width="1" opacity=".45"/>
+        </svg>
+      </div>
+      <div class="vision-copy reveal">
+        <p class="eyebrow" style="color:var(--water-500)">O olho da BLOOM</p>
+        <h2 style="font-size:clamp(26px,3.2vw,38px); margin-bottom:18px;">A câmera vê o que o olho, de longe, deixa passar</h2>
+        <p>A câmera tira uma foto da plantação, o sistema processa na hora, e aponta sinais de estresse hídrico ou doença antes que virem prejuízo visível a olho nu.</p>
+        <button class="scan-btn" id="scanBtn">Analisar planta agora</button>
+        <ul class="result-list" id="resultList"></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= BIOMIMÉTICA ================= -->
+<section class="bio section" id="biomimetica">
+  <div class="wrap">
+    <div class="bio-grid">
+      <div class="bio-copy reveal">
+        <p class="eyebrow">Design biomimético</p>
+        <h2 style="font-size:clamp(26px,3.2vw,38px); margin-bottom:18px; color:var(--paper-50);">A carcaça copia a folha de lótus — de propósito</h2>
+        <p>A folha da flor de lótus tem uma superfície microscopicamente rugosa e cerosa: a água nunca chega a molhá-la de verdade, forma gotas quase perfeitamente esféricas e escorre ao menor toque, levando a sujeira junto. É o chamado efeito lótus, ou superhidrofobia.</p>
+        <p>Aplicamos essa lógica na carcaça externa do sensor: impressão 3D com uma geometria inspirada nessa textura, mais um revestimento hidrofóbico. Na prática, barro e poeira não grudam no invólucro nem atrapalham a leitura — a própria chuva já faz a limpeza.</p>
+        <div class="bio-stats">
+          <div class="bio-stat"><div class="bs-num">~170°</div><div class="bs-lbl">ângulo de contato da gota na superfície lotiforme</div></div>
+          <div class="bio-stat"><div class="bs-num">3D</div><div class="bs-lbl">carcaça impressa + revestimento hidrofóbico</div></div>
+        </div>
+      </div>
+      <div class="wipe-card reveal">
+        <div class="wipe-canvas-wrap">
+          <canvas id="wipeCanvas"></canvas>
+        </div>
+        <p class="wipe-caption">Arraste o mouse (ou o dedo) sobre a superfície suja — assim como na folha de lótus, a gota recolhe a sujeira ao rolar.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MERCADO ================= -->
+<section class="market section" id="mercado">
+  <div class="wrap">
+    <div class="head-row reveal">
+      <h2>De "quer vender abobrinha?" a um comprador de verdade</h2>
+      <p class="head-note">Filtre pelo que está pronto pra colheita e veja quem, perto de você, está comprando.</p>
+    </div>
+    <div class="chips reveal" id="chips">
+      <button class="chip active" data-crop="todos">Todos</button>
+      <button class="chip" data-crop="abobrinha">Abobrinha</button>
+      <button class="chip" data-crop="tomate">Tomate</button>
+      <button class="chip" data-crop="alface">Alface</button>
+      <button class="chip" data-crop="milho">Milho</button>
+    </div>
+    <div class="buyer-grid reveal" id="buyerGrid">
+      <div class="buyer-card" data-crop="abobrinha"><div class="bc-type">Cooperativa</div><h4>Coop. Vale Verde</h4><p>Recebe direto do produtor, 4km da propriedade.</p><div class="bc-price">Abobrinha · R$ 2,90/kg</div></div>
+      <div class="buyer-card" data-crop="tomate"><div class="bc-type">CEASA</div><h4>CEASA Regional</h4><p>Entrega agendada, cotação atualizada diariamente.</p><div class="bc-price">Tomate · R$ 4,10/kg</div></div>
+      <div class="buyer-card" data-crop="alface"><div class="bc-type">Feira livre</div><h4>Feira do Bairro</h4><p>Venda direta ao consumidor aos sábados.</p><div class="bc-price">Alface · R$ 3,20/unid.</div></div>
+      <div class="buyer-card" data-crop="milho"><div class="bc-type">Cooperativa</div><h4>Coop. Grão Dourado</h4><p>Compra em lote, retirada na propriedade.</p><div class="bc-price">Milho · R$ 1,60/kg</div></div>
+      <div class="buyer-card" data-crop="abobrinha"><div class="bc-type">Mercadinho local</div><h4>Mercado do Zé</h4><p>Pequenas quantidades, pagamento à vista.</p><div class="bc-price">Abobrinha · R$ 3,10/kg</div></div>
+      <div class="buyer-card" data-crop="tomate"><div class="bc-type">Feira livre</div><h4>Feira do Bairro</h4><p>Venda direta ao consumidor aos sábados.</p><div class="bc-price">Tomate · R$ 4,50/kg</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= COMO COMEÇAR ================= -->
+<section class="start section" id="comecar">
+  <div class="wrap">
+    <div class="head-row reveal">
+      <h2>Como a BLOOM chega até a sua lavoura</h2>
+      <p class="head-note">Sem obra, sem complicação — pensado pra instalar num fim de tarde.</p>
+    </div>
+    <div class="start-steps reveal">
+      <div class="start-step">
+        <div class="ss-num">Passo 1</div>
+        <h4>Instale o kit na linha d'água</h4>
+        <p>Os sensores são acoplados direto na mangueira e no canteiro, sem precisar trocar nenhum equipamento que você já usa.</p>
+      </div>
+      <div class="start-step">
+        <div class="ss-num">Passo 2</div>
+        <h4>Conecte ao aplicativo</h4>
+        <p>O app abre com tudo visual e simples de mexer — funciona pra qualquer idade, sem depender de saber tecnologia.</p>
+      </div>
+      <div class="start-step">
+        <div class="ss-num">Passo 3</div>
+        <h4>Receba os avisos certos</h4>
+        <p>Vazamento, hora de irrigar, folha com problema ou comprador interessado — tudo chega direto no seu celular.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= APP ================= -->
+<section class="app-section section" id="app">
+  <div class="wrap app-grid">
+    <div class="app-copy reveal">
+      <p class="eyebrow">Leve a lavoura no bolso</p>
+      <h2>Baixe o <span>Bloom APP</span></h2>
+      <p class="lede">Todo o painel, os alertas de vazamento, o diagnóstico da folha e o mercado de compradores — direto no seu celular, funcionando mesmo com internet fraca.</p>
+      <ul class="app-feature-list">
+        <li><span class="af-ico">💧</span>Alerta de vazamento em tempo real</li>
+        <li><span class="af-ico">🌱</span>Painel de umidade e irrigação automática</li>
+        <li><span class="af-ico">📷</span>Scanner de saúde da folha pela câmera</li>
+        <li><span class="af-ico">🤝</span>Mercado de compradores da sua região</li>
+      </ul>
+      <div class="store-row">
+        <a href="https://play.google.com/store/apps" target="_blank" rel="noopener" class="store-badge" id="playStoreBadge">
+          <svg viewBox="0 0 24 24" width="24" height="24"><rect x="1" y="1" width="22" height="22" rx="6" fill="var(--leaf-500)"/><path d="M9 6.5L17 12L9 17.5V6.5Z" fill="var(--soil-950)"/></svg>
+          <span class="store-badge-text"><small>Disponível no</small>Google Play</span>
+        </a>
+        <div class="store-note">
+          <span class="soon-tag">Em breve</span> na App Store — cadastre-se para ser avisado.
+        </div>
+      </div>
+    </div>
+    <div class="app-visual reveal">
+      <div class="phone-mock">
+        <svg viewBox="0 0 260 520" width="260" height="520" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="4" width="252" height="512" rx="34" fill="var(--soil-900)" stroke="var(--soil-700)" stroke-width="2"/>
+          <rect x="18" y="30" width="224" height="460" rx="10" fill="var(--soil-950)"/>
+          <rect x="94" y="16" width="72" height="10" rx="5" fill="var(--soil-700)"/>
+          <text x="130" y="62" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="18" fill="var(--paper-50)">Bloom</text>
+          <rect x="34" y="80" width="192" height="66" rx="8" fill="var(--soil-800)"/>
+          <text x="46" y="102" font-family="IBM Plex Mono, monospace" font-size="9" letter-spacing="1" fill="var(--paper-100)" opacity=".55">UMIDADE DO SOLO</text>
+          <text x="46" y="128" font-family="IBM Plex Mono, monospace" font-size="20" fill="var(--leaf-300)">62%</text>
+          <circle cx="196" cy="113" r="20" fill="none" stroke="var(--leaf-500)" stroke-width="4" stroke-dasharray="88" stroke-dashoffset="30" stroke-linecap="round" transform="rotate(-90 196 113)"/>
+          <rect x="34" y="156" width="90" height="56" rx="8" fill="var(--soil-800)"/>
+          <text x="44" y="176" font-family="IBM Plex Mono, monospace" font-size="8" letter-spacing="1" fill="var(--paper-100)" opacity=".55">PRESSÃO</text>
+          <text x="44" y="198" font-family="IBM Plex Mono, monospace" font-size="15" fill="var(--water-300)">2.1 bar</text>
+          <rect x="136" y="156" width="90" height="56" rx="8" fill="var(--soil-800)"/>
+          <text x="146" y="176" font-family="IBM Plex Mono, monospace" font-size="8" letter-spacing="1" fill="var(--paper-100)" opacity=".55">TEMP.</text>
+          <text x="146" y="198" font-family="IBM Plex Mono, monospace" font-size="15" fill="var(--clay-300)">24°C</text>
+          <rect x="34" y="224" width="192" height="80" rx="8" fill="var(--leaf-600)"/>
+          <text x="46" y="246" font-family="IBM Plex Mono, monospace" font-size="8" letter-spacing="1" fill="var(--paper-50)" opacity=".7">STATUS</text>
+          <text x="46" y="268" font-family="Space Grotesk, sans-serif" font-size="12" fill="var(--paper-50)">Solo em nível ideal.</text>
+          <text x="46" y="286" font-family="Space Grotesk, sans-serif" font-size="12" fill="var(--paper-50)">Sem irrigação hoje.</text>
+          <rect x="34" y="316" width="192" height="1" fill="var(--soil-700)"/>
+          <text x="34" y="340" font-family="IBM Plex Mono, monospace" font-size="9" letter-spacing="1" fill="var(--paper-100)" opacity=".55">ÚLTIMOS AVISOS</text>
+          <rect x="34" y="352" width="192" height="34" rx="6" fill="var(--soil-800)"/>
+          <circle cx="50" cy="369" r="4" fill="var(--water-300)"/>
+          <text x="62" y="373" font-family="Space Grotesk, sans-serif" font-size="10.5" fill="var(--paper-100)">Câmera: folha saudável</text>
+          <rect x="34" y="392" width="192" height="34" rx="6" fill="var(--soil-800)"/>
+          <circle cx="50" cy="409" r="4" fill="var(--clay-300)"/>
+          <text x="62" y="413" font-family="Space Grotesk, sans-serif" font-size="10.5" fill="var(--paper-100)">Novo comprador interessado</text>
+          <rect x="34" y="450" width="192" height="1" fill="var(--soil-700)"/>
+          <g fill="var(--paper-100)" opacity=".6">
+            <circle cx="60" cy="468" r="9"/>
+            <rect x="110" y="459" width="18" height="18" rx="4"/>
+            <path d="M180 459 l9 18 l9 -18 Z"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= DÚVIDAS ================= -->
+<section class="faq section" id="duvidas">
+  <div class="wrap">
+    <div class="head-row reveal">
+      <h2>Perguntas que todo produtor faz</h2>
+      <p class="head-note">Se a sua não estiver aqui, é só chamar a gente.</p>
+    </div>
+    <div class="faq-list reveal" id="faqList">
+      <div class="faq-item open">
+        <button class="faq-q"><span>Preciso de internet boa na propriedade?</span><span class="faq-plus">+</span></button>
+        <div class="faq-a"><p>Não precisa ser nada sofisticado. Os sensores conectam por Wi-Fi local e os dados são enviados aos poucos — funciona bem mesmo com sinal fraco.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q"><span>Funciona pra qualquer tipo de plantação?</span><span class="faq-plus">+</span></button>
+        <div class="faq-a"><p>O sistema foi desenhado pra hortaliças e pequenas lavouras — canteiros de até 1,2m de largura e plantas de até 20cm de altura no modelo atual, com espaço pra crescer conforme a necessidade.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q"><span>E se cair energia ou a bomba continuar ligada sem eu perceber?</span><span class="faq-plus">+</span></button>
+        <div class="faq-a"><p>É exatamente esse o cenário que o sensor de pressão foi pensado pra pegar: se a pressão cai e a bomba segue ligada, o alerta de vazamento sai na hora, sem depender de alguém estar de olho.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q"><span>A carcaça aguenta sol, chuva e barro?</span><span class="faq-plus">+</span></button>
+        <div class="faq-a"><p>Sim — o invólucro externo usa uma superfície inspirada na folha de lótus, que repele água e sujeira, então o sensor continua lendo certo mesmo depois de um temporal ou um dia de barro.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q"><span>Preciso pagar mensalidade?</span><span class="faq-plus">+</span></button>
+        <div class="faq-a"><p>Ainda estamos definindo os planos. Se você quiser ser um dos primeiros a testar, fale com a gente pelo formulário abaixo.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CONTATO ================= -->
+<section class="contact section" id="contato">
+  <div class="wrap contact-wrap">
+    <div class="contact-intro">
+      <h2>Quer ser um dos primeiros a testar a BLOOM?</h2>
+      <p class="lede">Estamos selecionando pequenos produtores pra testar o sistema em campo antes do lançamento. Preencha os campos abaixo e a gente entra em contato.</p>
+    </div>
+    <form class="contact-form" id="contactForm" novalidate>
+      <div class="cf-row">
+        <div class="cf-field">
+          <label for="cfName">Nome</label>
+          <input type="text" id="cfName" name="name" required autocomplete="name" placeholder="Seu nome">
+          <span class="cf-error">Digite seu nome.</span>
+        </div>
+        <div class="cf-field">
+          <label for="cfContact">E-mail ou WhatsApp</label>
+          <input type="text" id="cfContact" name="contact" required autocomplete="email" placeholder="voce@email.com ou (00) 00000-0000">
+          <span class="cf-error">Informe um e-mail ou telefone válido.</span>
+        </div>
+      </div>
+      <div class="cf-row">
+        <div class="cf-field">
+          <label for="cfSize">Tamanho da área plantada</label>
+          <select id="cfSize" name="size" required>
+            <option value="" disabled selected>Selecione</option>
+            <option value="Até 50m²">Até 50m²</option>
+            <option value="50m² a 200m²">50m² a 200m²</option>
+            <option value="200m² a 1.000m²">200m² a 1.000m²</option>
+            <option value="Mais de 1.000m²">Mais de 1.000m²</option>
+          </select>
+          <span class="cf-error">Selecione o tamanho da área.</span>
+        </div>
+        <div class="cf-field">
+          <label for="cfCrop">Principal cultura</label>
+          <input type="text" id="cfCrop" name="crop" placeholder="Ex: tomate, alface, ervas...">
+        </div>
+      </div>
+      <div class="cf-field">
+        <label for="cfMsg">Conte um pouco da sua lavoura (opcional)</label>
+        <textarea id="cfMsg" name="msg" rows="3" placeholder="Onde fica, há quanto tempo planta, qual sua maior dificuldade hoje..."></textarea>
+      </div>
+      <div class="cf-bottom">
+        <button type="submit" class="btn btn-primary">Quero testar a BLOOM</button>
+        <span class="cf-status" id="cfStatus" role="status" aria-live="polite"></span>
+      </div>
+      <p class="cf-fallback">Prefere falar direto? Escreva pra <a href="mailto:contato@bloom.app.br">contato@bloom.app.br</a></p>
+    </form>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-top">
+      <div>
+        <div class="footer-mark"><img src="icons/icon-96.png" alt="Símbolo BLOOM">BLOOM</div>
+        <div class="footer-tag">Irrigação inteligente, detecção de vazamento e visão computacional — construído pra caber no bolso de quem planta pequeno.</div>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col">
+          <h5>Produto</h5>
+          <ul>
+            <li><a href="#problema">O problema</a></li>
+            <li><a href="#como-funciona">Como funciona</a></li>
+            <li><a href="#painel">Painel</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Saiba mais</h5>
+          <ul>
+            <li><a href="#biomimetica">Durabilidade</a></li>
+            <li><a href="#mercado">Mercado</a></li>
+            <li><a href="#duvidas">Dúvidas</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Contato</h5>
+          <ul>
+            <li><a href="#contato">Fale com a gente</a></li>
+            <li><a href="mailto:contato@bloom.app.br">contato@bloom.app.br</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>BLOOM — irrigação inteligente pra pequena lavoura</span>
+      <span>Feito pra caber no bolso de quem planta pequeno</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- NAV ---------- */
+  var nav = document.getElementById('nav');
+  window.addEventListener('scroll', function(){
+    nav.classList.toggle('scrolled', window.scrollY > 40);
+  });
+
+  /* ---------- MOBILE MENU ---------- */
+  var navToggle = document.getElementById('navToggle');
+  var mobileMenu = document.getElementById('mobileMenu');
+  function closeMobileMenu(){
+    mobileMenu.classList.remove('open');
+    navToggle.setAttribute('aria-expanded','false');
+    document.body.style.overflow = '';
+  }
+  function toggleMobileMenu(){
+    var willOpen = !mobileMenu.classList.contains('open');
+    mobileMenu.classList.toggle('open', willOpen);
+    navToggle.setAttribute('aria-expanded', String(willOpen));
+    document.body.style.overflow = willOpen ? 'hidden' : '';
+  }
+  navToggle.addEventListener('click', toggleMobileMenu);
+  mobileMenu.querySelectorAll('a').forEach(function(a){
+    a.addEventListener('click', closeMobileMenu);
+  });
+  window.addEventListener('keydown', function(e){
+    if(e.key === 'Escape') closeMobileMenu();
+  });
+  window.addEventListener('resize', function(){
+    if(window.innerWidth > 900) closeMobileMenu();
+  });
+
+  /* ---------- SERVICE WORKER (offline / installable) ---------- */
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('sw.js').catch(function(err){
+        console.warn('SW registration failed:', err);
+      });
+    });
+  }
+
+  /* ---------- OFFLINE BANNER ---------- */
+  var offlineBanner = document.getElementById('offlineBanner');
+  function updateOnlineStatus(){
+    offlineBanner.classList.toggle('show', !navigator.onLine);
+  }
+  window.addEventListener('online', updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+  updateOnlineStatus();
+
+  /* ---------- INSTALL PROMPT (Android/Chrome) + iOS FALLBACK ---------- */
+  var installBtn = document.getElementById('installBtn');
+  var deferredInstallPrompt = null;
+  var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    if(!isStandalone) installBtn.classList.add('show');
+  });
+
+  if(isIOS && !isStandalone){
+    installBtn.classList.add('show');
+  }
+
+  var iosModalBackdrop = document.getElementById('iosModalBackdrop');
+  var iosModalClose = document.getElementById('iosModalClose');
+  installBtn.addEventListener('click', function(){
+    if(deferredInstallPrompt){
+      deferredInstallPrompt.prompt();
+      deferredInstallPrompt.userChoice.finally(function(){ deferredInstallPrompt = null; installBtn.classList.remove('show'); });
+    } else if(isIOS){
+      iosModalBackdrop.classList.add('show');
+    }
+  });
+  iosModalClose.addEventListener('click', function(){ iosModalBackdrop.classList.remove('show'); });
+  iosModalBackdrop.addEventListener('click', function(e){ if(e.target === iosModalBackdrop) iosModalBackdrop.classList.remove('show'); });
+
+  window.addEventListener('appinstalled', function(){
+    installBtn.classList.remove('show');
+  });
+
+  /* ---------- BOTTOM TAB BAR: active state on scroll ---------- */
+  var tabLinks = document.querySelectorAll('.tab-bar a');
+  var tabSections = ['top','painel','app','mercado','contato']
+    .map(function(id){ return document.getElementById(id); })
+    .filter(Boolean);
+  if(tabSections.length && tabLinks.length){
+    var tabIO = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if(entry.isIntersecting){
+          var id = entry.target.id;
+          tabLinks.forEach(function(a){ a.classList.toggle('active', a.getAttribute('data-tab') === id); });
+        }
+      });
+    }, {rootMargin:'-40% 0px -50% 0px', threshold:0});
+    tabSections.forEach(function(s){ tabIO.observe(s); });
+  }
+
+  /* ---------- REVEAL ON SCROLL ---------- */
+  var revealEls = document.querySelectorAll('.reveal');
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, {threshold:.14});
+  revealEls.forEach(function(el){ io.observe(el); });
+
+  /* ---------- HERO DROPLET CANVAS (efeito lótus ambiente) ---------- */
+  var canvas = document.getElementById('dropletCanvas');
+  var ctx = canvas.getContext('2d');
+  var W, H, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  var mouse = {x:-999, y:-999};
+  var drops = [];
+  var N_DROPS = 46;
+
+  function resize(){
+    W = canvas.clientWidth; H = canvas.clientHeight;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  function makeDrop(){
+    return {
+      x: Math.random()*W,
+      y: Math.random()*H,
+      r: 2 + Math.random()*4.5,
+      vx: (Math.random()-0.5)*0.15,
+      vy: 0.12 + Math.random()*0.35,
+      wob: Math.random()*Math.PI*2
+    };
+  }
+  function initDrops(){
+    drops = [];
+    for(var i=0;i<N_DROPS;i++) drops.push(makeDrop());
+  }
+  window.addEventListener('resize', resize);
+  canvas.addEventListener('mousemove', function(e){
+    var rect = canvas.getBoundingClientRect();
+    mouse.x = e.clientX - rect.left; mouse.y = e.clientY - rect.top;
+  });
+  canvas.addEventListener('mouseleave', function(){ mouse.x=-999; mouse.y=-999; });
+  canvas.addEventListener('touchmove', function(e){
+    var rect = canvas.getBoundingClientRect();
+    var t = e.touches[0];
+    mouse.x = t.clientX - rect.left; mouse.y = t.clientY - rect.top;
+  }, {passive:true});
+
+  function drawDrop(d){
+    var grad = ctx.createRadialGradient(d.x - d.r*0.3, d.y - d.r*0.3, d.r*0.1, d.x, d.y, d.r*1.4);
+    grad.addColorStop(0, 'rgba(220,238,220,0.95)');
+    grad.addColorStop(0.4, 'rgba(154,209,229,0.55)');
+    grad.addColorStop(1, 'rgba(60,90,60,0)');
+    ctx.beginPath();
+    ctx.fillStyle = grad;
+    ctx.arc(d.x, d.y, d.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    ctx.arc(d.x - d.r*0.35, d.y - d.r*0.35, d.r*0.28, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  function tick(){
+    ctx.clearRect(0,0,W,H);
+    for(var i=0;i<drops.length;i++){
+      var d = drops[i];
+      d.wob += 0.01;
+      d.x += d.vx + Math.sin(d.wob)*0.05;
+      d.y += d.vy;
+      // repulsão tipo efeito lótus: gota escorrega ao mínimo toque
+      var dx = d.x - mouse.x, dy = d.y - mouse.y;
+      var dist = Math.sqrt(dx*dx + dy*dy);
+      if(dist < 70){
+        var f = (70 - dist) / 70;
+        d.x += (dx/(dist||1)) * f * 6;
+        d.y += (dy/(dist||1)) * f * 6 + f*2;
+      }
+      if(d.y - d.r > H){ Object.assign(d, makeDrop(), {y:-10}); }
+      if(d.x < -20) d.x = W+20;
+      if(d.x > W+20) d.x = -20;
+      drawDrop(d);
+    }
+    if(!reduceMotion) requestAnimationFrame(tick);
+  }
+  resize(); initDrops();
+  if(!reduceMotion){ requestAnimationFrame(tick); } else { drawDrop.call(null); tick(); }
+
+  /* ---------- HERO TICKER + DASHBOARD SIMULATION ---------- */
+  var state = { temp:24.6, humid:58, pressure:1.8, leakArmed:false };
+  var histT=[], histH=[], histP=[];
+  for(var i=0;i<30;i++){ histT.push(state.temp); histH.push(state.humid); histP.push(state.pressure); }
+
+  var heroTemp = document.getElementById('heroTemp');
+  var heroHumid = document.getElementById('heroHumid');
+  var heroPressure = document.getElementById('heroPressure');
+  var dTemp = document.getElementById('dTemp');
+  var dHumid = document.getElementById('dHumid');
+  var dPressure = document.getElementById('dPressure');
+  var dRisk = document.getElementById('dRisk');
+
+  function fmt(n, d){ return n.toFixed(d); }
+
+  function step(){
+    state.temp += (Math.random()-0.5)*0.4;
+    state.temp = Math.max(18, Math.min(33, state.temp));
+    state.humid += (Math.random()-0.5)*1.6;
+    state.humid = Math.max(28, Math.min(78, state.humid));
+    state.pressure += (Math.random()-0.5)*0.05;
+    state.pressure = Math.max(1.2, Math.min(2.2, state.pressure));
+
+    histT.push(state.temp); histT.shift();
+    histH.push(state.humid); histH.shift();
+    histP.push(state.pressure); histP.shift();
+
+    var tTxt = fmt(state.temp,1) + ' °C';
+    var hTxt = Math.round(state.humid) + ' %';
+    var pTxt = fmt(state.pressure,1) + ' bar';
+    heroTemp.textContent = tTxt; heroHumid.textContent = hTxt; heroPressure.textContent = pTxt;
+    dTemp.textContent = tTxt; dHumid.textContent = hTxt; dPressure.textContent = pTxt;
+
+    drawSpark('sparkTemp', histT, 18, 33, '#9AD1E5');
+    drawSpark('sparkHumid', histH, 28, 78, '#ABCE83');
+    drawSpark('sparkPressure', histP, 1.2, 2.2, '#E4B77D');
+
+    dRisk.textContent = state.pressure < 1.4 ? 'Alto — possível vazamento' : 'Baixo — linha estável';
+    dRisk.style.color = state.pressure < 1.4 ? '#E4B77D' : '#ABCE83';
+  }
+  function drawSpark(id, arr, min, max, color){
+    var c = document.getElementById(id);
+    if(!c) return;
+    var cctx = c.getContext('2d');
+    var w = c.clientWidth, h = c.clientHeight;
+    if(c.width !== w*dpr){ c.width = w*dpr; c.height = h*dpr; }
+    cctx.setTransform(dpr,0,0,dpr,0,0);
+    cctx.clearRect(0,0,w,h);
+    cctx.beginPath();
+    arr.forEach(function(v,i){
+      var x = (i/(arr.length-1)) * w;
+      var y = h - ((v-min)/(max-min||1)) * h;
+      if(i===0) cctx.moveTo(x,y); else cctx.lineTo(x,y);
+    });
+    cctx.strokeStyle = color; cctx.lineWidth = 1.6; cctx.lineJoin='round'; cctx.stroke();
+  }
+  setInterval(step, 1800);
+  step();
+
+  /* day/night toggle */
+  var dayNightSwitch = document.getElementById('dayNightSwitch');
+  var aiMsg = document.getElementById('aiMsg');
+  var aiWindow = document.getElementById('aiWindow');
+  var isNight = false;
+  dayNightSwitch.addEventListener('click', function(){
+    isNight = !isNight;
+    dayNightSwitch.classList.toggle('night', isNight);
+    dayNightSwitch.setAttribute('aria-pressed', String(isNight));
+    if(isNight){
+      aiMsg.textContent = 'Temperatura caiu e o solo ainda está úmido do fim da tarde. Irrigação pausada até o amanhecer.';
+      aiWindow.textContent = 'Próxima checagem às 6h.';
+    } else {
+      aiMsg.textContent = 'Umidade do solo em nível ideal. Hoje não precisa irrigar — reviso às 18h.';
+      aiWindow.textContent = 'Próxima checagem em 3 horas.';
+    }
+  });
+
+  /* ---------- LEAK DIAGRAM ---------- */
+  var alertCard = document.getElementById('alertCard');
+  var alertTitle = document.getElementById('alertTitle');
+  var alertDesc = document.getElementById('alertDesc');
+  var leakPoints = document.querySelectorAll('.leak-point');
+
+  function showLeak(el){
+    alertTitle.textContent = el.getAttribute('data-title');
+    alertDesc.textContent = el.getAttribute('data-desc');
+    alertCard.classList.add('show');
+  }
+  leakPoints.forEach(function(p){
+    p.addEventListener('click', function(){ showLeak(p); });
+    p.addEventListener('keydown', function(e){ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); showLeak(p); } });
+  });
+  document.getElementById('simulateLeak').addEventListener('click', function(){
+    var idx = Math.floor(Math.random()*leakPoints.length);
+    showLeak(leakPoints[idx]);
+  });
+
+  /* ---------- TABS ---------- */
+  var tabBtns = document.querySelectorAll('.tab-btn');
+  var tabPanels = document.querySelectorAll('.tab-panel');
+  tabBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var target = btn.getAttribute('data-tab');
+      tabBtns.forEach(function(b){ b.classList.toggle('active', b===btn); });
+      tabPanels.forEach(function(p){ p.classList.toggle('active', p.getAttribute('data-panel')===target); });
+    });
+  });
+
+  /* ---------- VISION SCAN ---------- */
+  var scanBtn = document.getElementById('scanBtn');
+  var scanline = document.getElementById('scanline');
+  var resultList = document.getElementById('resultList');
+  var resultSets = [
+    [
+      {ok:true, text:'Cor da folha: verde saudável'},
+      {ok:true, text:'Sem sinais de murcha'},
+      {ok:true, text:'Nenhuma doença detectada'}
+    ],
+    [
+      {ok:false, text:'Início de amarelamento nas bordas'},
+      {ok:false, text:'Possível déficit hídrico — sugerir irrigação'},
+      {ok:true, text:'Sem sinais de praga'}
+    ],
+    [
+      {ok:true, text:'Cor da folha: verde saudável'},
+      {ok:false, text:'Manchas leves — monitorar próximas 48h'},
+      {ok:true, text:'Umidade do solo adequada'}
+    ]
+  ];
+  scanBtn.addEventListener('click', function(){
+    resultList.innerHTML = '';
+    scanline.classList.remove('run'); void scanline.offsetWidth; scanline.classList.add('run');
+    var set = resultSets[Math.floor(Math.random()*resultSets.length)];
+    set.forEach(function(item, i){
+      setTimeout(function(){
+        var li = document.createElement('li');
+        li.className = item.ok ? 'ok' : 'warn';
+        li.textContent = (item.ok ? '✓ ' : '⚠ ') + item.text;
+        resultList.appendChild(li);
+        requestAnimationFrame(function(){ li.classList.add('show'); });
+      }, 500 + i*260);
+    });
+  });
+
+  /* ---------- BIOMIMICRY WIPE CANVAS ---------- */
+  var wipeWrap = document.querySelector('.wipe-canvas-wrap');
+  var wipeCanvas = document.getElementById('wipeCanvas');
+  var wctx = wipeCanvas.getContext('2d');
+  var dirt = [];
+  var wW, wH;
+
+  function wipeResize(){
+    wW = wipeCanvas.clientWidth; wH = wipeCanvas.clientHeight;
+    wipeCanvas.width = wW*dpr; wipeCanvas.height = wH*dpr;
+    wctx.setTransform(dpr,0,0,dpr,0,0);
+    seedDirt();
+    renderWipe();
+  }
+  function seedDirt(){
+    dirt = [];
+    var count = Math.floor((wW*wH)/900);
+    for(var i=0;i<count;i++){
+      dirt.push({x:Math.random()*wW, y:Math.random()*wH, r:1+Math.random()*2.6, a:0.25+Math.random()*0.35});
+    }
+  }
+  function renderWipe(){
+    wctx.clearRect(0,0,wW,wH);
+    var bg = wctx.createLinearGradient(0,0,0,wH);
+    bg.addColorStop(0,'#33401F'); bg.addColorStop(1,'#212A16');
+    wctx.fillStyle = bg; wctx.fillRect(0,0,wW,wH);
+    wctx.fillStyle = 'rgba(120,100,70,1)';
+    dirt.forEach(function(p){
+      wctx.globalAlpha = p.a;
+      wctx.beginPath(); wctx.arc(p.x,p.y,p.r,0,Math.PI*2); wctx.fill();
+    });
+    wctx.globalAlpha = 1;
+  }
+  var wiping = false;
+  function wipeAt(x,y){
+    // gota "recolhe" a sujeira num raio, como no efeito lótus
+    var radius = 26;
+    dirt = dirt.filter(function(p){
+      var dx=p.x-x, dy=p.y-y;
+      return (dx*dx+dy*dy) > radius*radius;
+    });
+    // desenha o rastro de gota
+    wctx.save();
+    var grad = wctx.createRadialGradient(x-4,y-4,1,x,y,radius);
+    grad.addColorStop(0,'rgba(240,250,240,0.9)');
+    grad.addColorStop(0.5,'rgba(154,209,229,0.4)');
+    grad.addColorStop(1,'rgba(154,209,229,0)');
+    wctx.fillStyle = grad;
+    wctx.beginPath(); wctx.arc(x,y,radius,0,Math.PI*2); wctx.fill();
+    wctx.restore();
+  }
+  function posFromEvent(e){
+    var rect = wipeCanvas.getBoundingClientRect();
+    var cx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    var cy = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+    return {x:cx, y:cy};
+  }
+  wipeWrap.addEventListener('mousedown', function(e){ wiping=true; var p=posFromEvent(e); wipeAt(p.x,p.y); });
+  window.addEventListener('mouseup', function(){ wiping=false; });
+  wipeWrap.addEventListener('mousemove', function(e){
+    var p = posFromEvent(e);
+    if(wiping){ renderWipe(); wipeAt(p.x,p.y); } else { renderWipe(); wipeAt(p.x,p.y); }
+  });
+  wipeWrap.addEventListener('mouseleave', function(){ renderWipe(); });
+  wipeWrap.addEventListener('touchstart', function(e){ wiping=true; var p=posFromEvent(e); wipeAt(p.x,p.y); }, {passive:true});
+  wipeWrap.addEventListener('touchmove', function(e){ var p=posFromEvent(e); renderWipe(); wipeAt(p.x,p.y); }, {passive:true});
+  wipeWrap.addEventListener('touchend', function(){ wiping=false; });
+
+  window.addEventListener('resize', wipeResize);
+  wipeResize();
+
+  /* re-grow a little dirt occasionally so the demo stays interactive */
+  setInterval(function(){
+    if(dirt.length < 40){
+      dirt.push({x:Math.random()*wW, y:Math.random()*wH, r:1+Math.random()*2.6, a:0.25+Math.random()*0.35});
+      if(!wiping) renderWipe();
+    }
+  }, 900);
+
+  /* ---------- MARKETPLACE FILTER ---------- */
+  var chips = document.querySelectorAll('.chip');
+  var buyerCards = document.querySelectorAll('.buyer-card');
+  chips.forEach(function(chip){
+    chip.addEventListener('click', function(){
+      chips.forEach(function(c){ c.classList.toggle('active', c===chip); });
+      var crop = chip.getAttribute('data-crop');
+      buyerCards.forEach(function(card){
+        var match = crop === 'todos' || card.getAttribute('data-crop') === crop;
+        card.classList.toggle('hide', !match);
+      });
+    });
+  });
+
+  /* ---------- FAQ ACCORDION ---------- */
+  var faqItems = document.querySelectorAll('.faq-item');
+  function setFaqHeight(item){
+    var a = item.querySelector('.faq-a');
+    a.style.maxHeight = item.classList.contains('open') ? (a.scrollHeight + 'px') : '0px';
+  }
+  faqItems.forEach(function(item){
+    setFaqHeight(item);
+    item.querySelector('.faq-q').addEventListener('click', function(){
+      var wasOpen = item.classList.contains('open');
+      faqItems.forEach(function(i){ i.classList.remove('open'); setFaqHeight(i); });
+      if(!wasOpen){ item.classList.add('open'); setFaqHeight(item); }
+    });
+  });
+  window.addEventListener('resize', function(){
+    faqItems.forEach(function(i){ if(i.classList.contains('open')) setFaqHeight(i); });
+  });
+
+  /* ---------- CONTACT FORM ---------- */
+  var contactForm = document.getElementById('contactForm');
+  if(contactForm){
+    var cfStatus = document.getElementById('cfStatus');
+    var nameField = document.getElementById('cfName').closest('.cf-field');
+    var contactField = document.getElementById('cfContact').closest('.cf-field');
+    var sizeField = document.getElementById('cfSize').closest('.cf-field');
+
+    function looksLikeEmailOrPhone(v){
+      var email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      var phone = /[\d\s()+-]{8,}/;
+      return email.test(v) || phone.test(v);
+    }
+
+    contactForm.addEventListener('submit', function(e){
+      e.preventDefault();
+      var name = document.getElementById('cfName').value.trim();
+      var contact = document.getElementById('cfContact').value.trim();
+      var size = document.getElementById('cfSize').value;
+      var crop = document.getElementById('cfCrop').value.trim();
+      var msg = document.getElementById('cfMsg').value.trim();
+
+      var valid = true;
+      [nameField, contactField, sizeField].forEach(function(f){ f.classList.remove('invalid'); });
+
+      if(!name){ nameField.classList.add('invalid'); valid = false; }
+      if(!contact || !looksLikeEmailOrPhone(contact)){ contactField.classList.add('invalid'); valid = false; }
+      if(!size){ sizeField.classList.add('invalid'); valid = false; }
+
+      if(!valid){
+        cfStatus.textContent = 'Confira os campos marcados em laranja.';
+        cfStatus.classList.remove('ok');
+        return;
+      }
+
+      var subject = 'Quero testar a BLOOM — ' + name;
+      var bodyLines = [
+        'Nome: ' + name,
+        'Contato: ' + contact,
+        'Área plantada: ' + size,
+        'Cultura principal: ' + (crop || 'não informado'),
+        '',
+        'Mensagem:',
+        (msg || 'não informado')
+      ];
+      var mailto = 'mailto:contato@bloom.app.br'
+        + '?subject=' + encodeURIComponent(subject)
+        + '&body=' + encodeURIComponent(bodyLines.join('\n'));
+
+      window.location.href = mailto;
+      cfStatus.textContent = 'Abrindo seu e-mail com os dados preenchidos...';
+      cfStatus.classList.add('ok');
+    });
+
+    contactForm.querySelectorAll('input, select, textarea').forEach(function(el){
+      el.addEventListener('input', function(){
+        var field = el.closest('.cf-field');
+        if(field) field.classList.remove('invalid');
+      });
+    });
+  }
+
+})();
+</script>
+</body>
+</html>
