@@ -1,0 +1,16 @@
+{
+  "appId": "br.com.bloom.app",
+  "appName": "Bloom",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "backgroundColor": "#0F130B",
+  "server": {
+    "androidScheme": "https"
+  },
+  "ios": {
+    "contentInset": "always"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
